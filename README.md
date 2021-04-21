@@ -1,5 +1,10 @@
-GeoFrame
+GeoStacks
 ========
+
+**A quick test:** run `test.py`.
+
+Introduction
+===============
 
 This README provides an overview of the 'GeoFrame' object, a geospatial dataframe analogous to a pandas dataframe, designed primarily for use with satellite data. Just as a pandas dataframe is made up of `series`, a GeoFrame is a collection `aquisitions` which are often themselves composed of `granuals`. Additionally, there are four (sub)-modules that describe operations with the GeoFrame object:
 

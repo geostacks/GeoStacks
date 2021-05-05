@@ -44,6 +44,7 @@ stdenv.mkDerivation rec {
         joblib
         geos
         scikitlearn
+        mplleaflet
         xarray
         six
 	    time

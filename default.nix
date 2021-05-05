@@ -1,11 +1,14 @@
-{
-  current ? import (builtins.fetchTarball {
-             url = "https://github.com/NixOS/nixpkgs/archive/20.09.tar.gz";
-             sha256 = "1wg61h4gndm3vcprdcg7rc4s1v3jkm5xd7lw8r2f67w502y94gcy";
-             }) {}
-}:
+#{
+#  current ? import (builtins.fetchTarball {
+#             url = "https://github.com/NixOS/nixpkgs/archive/20.09.tar.gz";
+#             sha256 = "1wg61h4gndm3vcprdcg7rc4s1v3jkm5xd7lw8r2f67w502y94gcy";
+#             }) {}
+#}:
 
-with current;
+#with current;
+
+# unstable needed for distributed dask support
+with import <unstable> {};
 
 stdenv.mkDerivation rec {
   name = "env" ;
@@ -18,8 +21,10 @@ stdenv.mkDerivation rec {
         scipy
         flake8
         matplotlib
-        geopandas
+#       geopandas  # has descartes dependency which is broken
         boto3
+        intake
+        (dask.override { withExtraComplete = true; })
 	    pip
         notebook
         cython
@@ -28,6 +33,7 @@ stdenv.mkDerivation rec {
         seaborn
         gdal
         h5py
+        datashader
         netcdf4
 	    shapely
 	    pyproj

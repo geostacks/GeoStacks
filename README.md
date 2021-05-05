@@ -1,7 +1,9 @@
 GeoStacks
 ========
 
-**A quick test:** run `test.py`.
+**A quick test:** run `doc/examples/EarthCube_meeting.ipynb`.
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/geostacks/GeoStacks/whyjz?filepath=doc%2Fexamples%2FEarthCube_meeting.ipynb)
 
 Introduction
 ===============

@@ -48,6 +48,8 @@ stdenv.mkDerivation rec {
         rasterio
 	    ipython
 	    nbformat
+	    ipyleaflet
+	    ipywidgets
       ];
      })
     ];

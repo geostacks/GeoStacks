@@ -55,6 +55,7 @@ stdenv.mkDerivation rec {
         rasterio
 	    ipython
 	    nbformat
+	    ipywidgets
       ];
      })
     ];

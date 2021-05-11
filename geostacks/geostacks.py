@@ -64,8 +64,14 @@ class SpatialIndexLS8(SpatialIndex):
         return geometry_collection
 
     def read(self):
-
-        self.corner_pts_df = pd.read_excel(self.fname)
+        
+        if self.fname.endswith('.xls'):
+            self.corner_pts_df = pd.read_excel(self.fname)
+        elif self.fname.endswith('.csv'):
+            self.corner_pts_df = pd.read_csv(self.fname)
+        else:
+            print('Error: unsupported file format')
+        self.corner_pts_df = self.corner_pts_df.astype({'path': int, 'row': int})
         geometry_collection = self.gen_geometries()
         self.footprint = gpd.GeoDataFrame(self.corner_pts_df,
                                           geometry=geometry_collection)

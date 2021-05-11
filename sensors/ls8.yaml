@@ -1,0 +1,55 @@
+sources:
+  landsat8aws:
+    description: Landsat AWS Public Access
+    driver: rasterio
+    parameters: # User parameters
+      band_id:
+        description: Band Number
+        type: str
+        default: B2
+        allowed:
+          - B1
+          - B2
+          - B3
+          - B4
+          - B5
+          - B6
+          - B7
+      year:
+        description: Aquisition Year
+        type: int
+        default: 2014
+        min: 2013
+        max: 2021
+      path:
+        description: Path in WRF2 Grid
+        type: str # need padding, which is why not int
+        default: "006"
+        min: "001"
+        max: "233"
+      row:
+        description: Row in WRF2 Grid
+        type: str # Same comment as above
+        default: "013"
+        min: "001"
+        max: "248"
+      doy:
+        description: Day of Year
+        type: str # Same comment as above
+        default: 195
+      source:
+        description: Source dataset
+        type: str
+        default: AWS
+    args:
+      urlpath: 'http://landsat-pds.s3.amazonaws.com/L8/{{ path }}/{{ row }}/LC8{{ path }}{{ row }}{{ year }}{{ doy }}LGN00/LC8{{ path }}{{ row }}{{ year }}{{ doy }}LGN00_{{ band_id}}.TIF'
+      storage_options:
+        anon: true
+      chunks:
+        x: 512
+        y: 512 
+        #requester_pays: False
+        #metadata:
+        #origin_url: 'https://ral.ucar.edu/solutions/products/camels'
+      
+

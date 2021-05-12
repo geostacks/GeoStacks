@@ -1,13 +1,13 @@
 import os
 import pandas as pd
-import geopandas as gpd
 import itertools
-from shapely.geometry import Point, Polygon, MultiPolygon, box
+#from shapely.geometry import Point, Polygon, MultiPolygon, box
 import numpy as np
 from sklearn.neighbors import BallTree
 import requests
 import boto3
 import botocore
+import pickel
 from datetime import datetime
 
 
@@ -32,36 +32,39 @@ class SpatialIndex:
 
 class SpatialIndexLS8(SpatialIndex):
 
-    def gen_geometries(self):
-        """
-        Create a polygon object for each LS8 grid point.
-        If the polygon runs across the antimeridian, The polygon will be
-        separated into two adjacent polygons along the antimeridian, and these
-        two polygons will be grouped into a single MultiPolygon object.
-        """
-        geometry_collection = []
-        for index, row in self.corner_pts_df.iterrows():
-            lon_list = [row.lon_UL, row.lon_UR, row.lon_LR, row.lon_LL]
-            if self._check_crossing(lon_list):
-                set1 = [x % 360.0 for x in lon_list]
-                set2 = [x % -360.0 for x in lon_list]
-                poly1 = Polygon([(set1[0], row.lat_UL),
-                                 (set1[1], row.lat_UR),
-                                 (set1[2], row.lat_LR),
-                                 (set1[3], row.lat_LL)])
-                poly2 = Polygon([(set2[0], row.lat_UL),
-                                 (set2[1], row.lat_UR),
-                                 (set2[2], row.lat_LR),
-                                 (set2[3], row.lat_LL)])
-                feature_geometry = MultiPolygon([poly1, poly2])
-            else:
-                feature_geometry = Polygon([(row.lon_UL, row.lat_UL),
-                                            (row.lon_UR, row.lat_UR),
-                                            (row.lon_LR, row.lat_LR),
-                                            (row.lon_LL, row.lat_LL)])
-            geometry_collection.append(feature_geometry)
+    ### We should test for antimeridian, 
+    ### but disabling for now to test query function
 
-        return geometry_collection
+    #def gen_geometries(self):
+    #    """
+    #    Create a polygon object for each LS8 grid point.
+    #    If the polygon runs across the antimeridian, The polygon will be
+    #    separated into two adjacent polygons along the antimeridian, and these
+    #    two polygons will be grouped into a single MultiPolygon object.
+    #    """
+    #    geometry_collection = []
+    #    for index, row in self.corner_pts_df.iterrows():
+    #        lon_list = [row.lon_UL, row.lon_UR, row.lon_LR, row.lon_LL]
+    #        if self._check_crossing(lon_list):
+    #            set1 = [x % 360.0 for x in lon_list]
+    #            set2 = [x % -360.0 for x in lon_list]
+    #            poly1 = Polygon([(set1[0], row.lat_UL),
+    #                             (set1[1], row.lat_UR),
+    #                             (set1[2], row.lat_LR),
+    #                             (set1[3], row.lat_LL)])
+    #            poly2 = Polygon([(set2[0], row.lat_UL),
+    #                             (set2[1], row.lat_UR),
+    #                             (set2[2], row.lat_LR),
+    #                             (set2[3], row.lat_LL)])
+    #            feature_geometry = MultiPolygon([poly1, poly2])
+    #        else:
+    #            feature_geometry = Polygon([(row.lon_UL, row.lat_UL),
+    #                                        (row.lon_UR, row.lat_UR),
+    #                                        (row.lon_LR, row.lat_LR),
+    #                                        (row.lon_LL, row.lat_LL)])
+    #        geometry_collection.append(feature_geometry)
+
+    #    return geometry_collection
 
     def read(self):
         
@@ -72,14 +75,61 @@ class SpatialIndexLS8(SpatialIndex):
         else:
             print('Error: unsupported file format')
         self.corner_pts_df = self.corner_pts_df.astype({'path': int, 'row': int})
-        geometry_collection = self.gen_geometries()
-        self.footprint = gpd.GeoDataFrame(self.corner_pts_df,
-                                          geometry=geometry_collection)
-        self.footprint = self.footprint.drop(['lat_UL', 'lon_UL', 'lat_UR',
-                                              'lon_UR', 'lat_LL', 'lon_LL',
-                                              'lat_LR', 'lon_LR'], axis=1)
+        #geometry_collection = self.gen_geometries()
+        #self.footprint = gpd.GeoDataFrame(self.corner_pts_df,
+        #                                  geometry=geometry_collection)
+        #self.footprint = self.footprint.drop(['lat_UL', 'lon_UL', 'lat_UR',
+        #                                      'lon_UR', 'lat_LL', 'lon_LL',
+        #                                      'lat_LR', 'lon_LR'], axis=1)
 
-    def query_pathrow(self, point_geometry):
+    def make_pts(lat, lon):
+        "input is degrees"
+        points = np.vstack((lat, lon)).T
+        points = np.radians(points)
+        if len(points) == 1:
+            points = points.reshape(1,-1)
+        return points
+
+    def point_in_box(idx, points):
+        """Returns 'True' if point is in box, else 'False'
+           `points` is expected to be from `make_pts` (i.e.,  radian vector)
+
+           ...think that points can be singular or multiple?"""
+        footprint = get_footprints(idx)
+        center_lon = np.radians(self.corner_pts_df.lon_CTR.iloc[idx])
+        center_lat = np.radians(self.corner_pts_df.lat_CTR.iloc[idx])
+        # these are the edge segmentsin lon/lat space
+        supports = [footprint[0]-footprint[1],
+                    footprint[1]-footprint[2],
+                    footprint[2]-footprint[3],
+                    footprint[0]-footprint[3]]
+        normals = np.array([(s[1],-s[0]) for s in supports])
+        pts = [footprint[0],   # a point within each edge
+               footprint[1],
+               footprint[2],
+               footprint[3]]
+        bdry_values = np.array([np.sum(n * p) for n, p in zip(normals, pts)])
+        #center_values = [np.sum(n * [center_lon, center_lat]) for n in normals]
+        center_values = [np.sum(n * [center_lat, center_lon]) for n in normals]
+        center_signs = np.sign(center_values - bdry_values)
+        
+        normal_mul = np.asarray(points).dot(normals.T)
+        values_ = normal_mul - bdry_values[None,:]
+        signs_ = np.sign(values_) * center_signs[None,:]
+        return np.squeeze(np.all(signs_ == 1, 1))
+
+    def get_footprint(idx):
+        """ Returns (4,2) (rows, columns) array of coordinate corners (lat, lon)
+        idx is an entry from q() in LS8
+        corners start UL and increase clockwise"""
+        # Reorder columns for sensible reshape
+        sub = self.corner_pts_df[['lat_UL','lon_UL',
+                                  'lat_UR','lon_UR',
+                                  'lat_LR','lon_LR',
+                                  'lat_LL','lon_LL']].iloc[idx]
+        return np.radians(sub.values.reshape((4,2)))
+
+    def query_pathrow(self, lat, lon):
         '''
         Query available LS8 Path/Row combinations for a point in [lon, lat].
         We use a two-step process:
@@ -95,29 +145,25 @@ class SpatialIndexLS8(SpatialIndex):
         '''
 
         # (1) Ball Tree
-        points = np.vstack((self.footprint.lon_CTR.values,
-                            self.footprint.lat_CTR.values)).T
-        points *= np.pi/180.
-        LSBall = BallTree(points, metric='haversine')
+        # Load tree to reduce runtime...
+        LSBall = pickle.load( open("../sensors/ls8Ball.pkl", "rb"))
+
+        point_geometry = self.make_pts(lat,lon)
 
         q = np.array(point_geometry)
-        q *= np.pi/180.
-        if type(point_geometry) is Point:
-            pt = point_geometry
-        else:
-            pt = Point(point_geometry)
 
-        pre_selection = LSBall.query_radius(q.reshape(1, -1),
-                                            r=0.05,
+        pre_selection = LSBall.query_radius(q, r=0.05,
                                             return_distance=False)
         pre_selection_idx = pre_selection[0]
+        # @whyjz : just curious, why the sort?
         pre_selection_idx.sort()
         polygon_pre_selection = self.footprint.loc[pre_selection_idx]
 
-        # (2) Point-in-polygon
+        # (2) Point-in-box
+        # Does not work for complex polygons, but fine for footprints
         selection_idx = []
         for idx, row in polygon_pre_selection.iterrows():
-            if pt.within(row.geometry):
+            if self.point_in_box(idx, q):
                 selection_idx.append(idx)
 
         return selection_idx

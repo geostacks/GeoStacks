@@ -1,9 +1,8 @@
 import os
 import pandas as pd
 import itertools
-#from shapely.geometry import Point, Polygon, MultiPolygon, box
+# from shapely.geometry import Point, Polygon, MultiPolygon, box
 import numpy as np
-from sklearn.neighbors import BallTree
 import requests
 import boto3
 import botocore
@@ -33,10 +32,10 @@ class SpatialIndex:
 
 class SpatialIndexLS8(SpatialIndex):
 
-    ### We should test for antimeridian, 
-    ### but disabling for now to test query function
+    # We should test for antimeridian,
+    # but disabling for now to test query function
 
-    #def gen_geometries(self):
+    # def gen_geometries(self):
     #    """
     #    Create a polygon object for each LS8 grid point.
     #    If the polygon runs across the antimeridian, The polygon will be
@@ -68,27 +67,28 @@ class SpatialIndexLS8(SpatialIndex):
     #    return geometry_collection
 
     def read(self):
-        
+
         if self.fname.endswith('.xls'):
             self.corner_pts_df = pd.read_excel(self.fname)
         elif self.fname.endswith('.csv'):
             self.corner_pts_df = pd.read_csv(self.fname)
         else:
             print('Error: unsupported file format')
-        self.corner_pts_df = self.corner_pts_df.astype({'path': int, 'row': int})
-        #geometry_collection = self.gen_geometries()
-        #self.footprint = gpd.GeoDataFrame(self.corner_pts_df,
-        #                                  geometry=geometry_collection)
-        #self.footprint = self.footprint.drop(['lat_UL', 'lon_UL', 'lat_UR',
-        #                                      'lon_UR', 'lat_LL', 'lon_LL',
-        #                                      'lat_LR', 'lon_LR'], axis=1)
+        self.corner_pts_df = self.corner_pts_df.astype({'path': int,
+                                                        'row': int})
+        # geometry_collection = self.gen_geometries()
+        # self.footprint = gpd.GeoDataFrame(self.corner_pts_df,
+        #                                   geometry=geometry_collection)
+        # self.footprint = self.footprint.drop(['lat_UL', 'lon_UL', 'lat_UR',
+        #                                       'lon_UR', 'lat_LL', 'lon_LL',
+        #                                       'lat_LR', 'lon_LR'], axis=1)
 
     def make_pts(self, lat, lon):
         "input is degrees"
         points = np.vstack((lat, lon)).T
         points = np.radians(points)
         if len(points) == 1:
-            points = points.reshape(1,-1)
+            points = points.reshape(1, -1)
         return points
 
     def point_in_box(self, idx, points):
@@ -104,19 +104,18 @@ class SpatialIndexLS8(SpatialIndex):
                     footprint[1]-footprint[2],
                     footprint[2]-footprint[3],
                     footprint[0]-footprint[3]]
-        normals = np.array([(s[1],-s[0]) for s in supports])
+        normals = np.array([(s[1], -s[0]) for s in supports])
         pts = [footprint[0],   # a point within each edge
                footprint[1],
                footprint[2],
                footprint[3]]
         bdry_values = np.array([np.sum(n * p) for n, p in zip(normals, pts)])
-        #center_values = [np.sum(n * [center_lon, center_lat]) for n in normals]
         center_values = [np.sum(n * [center_lat, center_lon]) for n in normals]
         center_signs = np.sign(center_values - bdry_values)
-        
+
         normal_mul = np.asarray(points).dot(normals.T)
-        values_ = normal_mul - bdry_values[None,:]
-        signs_ = np.sign(values_) * center_signs[None,:]
+        values_ = normal_mul - bdry_values[None, :]
+        signs_ = np.sign(values_) * center_signs[None, :]
         return np.squeeze(np.all(signs_ == 1, 1))
 
     def get_footprint(self, idx):
@@ -124,11 +123,11 @@ class SpatialIndexLS8(SpatialIndex):
         idx is an entry from q() in LS8
         corners start UL and increase clockwise"""
         # Reorder columns for sensible reshape
-        sub = self.corner_pts_df[['lat_UL','lon_UL',
-                                  'lat_UR','lon_UR',
-                                  'lat_LR','lon_LR',
-                                  'lat_LL','lon_LL']].iloc[idx]
-        return np.radians(sub.values.reshape((4,2)))
+        sub = self.corner_pts_df[['lat_UL', 'lon_UL',
+                                  'lat_UR', 'lon_UR',
+                                  'lat_LR', 'lon_LR',
+                                  'lat_LL', 'lon_LL']].iloc[idx]
+        return np.radians(sub.values.reshape((4, 2)))
 
     def query_pathrow(self, lat, lon):
         '''
@@ -148,10 +147,7 @@ class SpatialIndexLS8(SpatialIndex):
         # (1) Ball Tree
         # Load tree to reduce runtime...
         data = pkgutil.get_data(__name__, "sensors/ls8Ball.pkl")
-        #LSBall = pickle.load( open("sensors/ls8Ball.pkl", "rb"))
         LSBall = pickle.loads(data)
-
-        #point_geometry = self.make_pts(lat,lon)
 
         q = self.make_pts(lat, lon)
 

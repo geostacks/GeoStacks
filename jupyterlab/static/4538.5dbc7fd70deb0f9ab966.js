@@ -1,2 +1,0 @@
-(self["webpackChunk_jupyterlab_application_top"]=self["webpackChunk_jupyterlab_application_top"]||[]).push([[4538],{24538:(p,a,t)=>{"use strict";t.d(a,{N:()=>e});var e="1.5.0"}}]);
-//# sourceMappingURL=4538.5dbc7fd70deb0f9ab966.js.map?v=5dbc7fd70deb0f9ab966

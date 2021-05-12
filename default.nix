@@ -1,40 +1,68 @@
-let
-  jupyter = import (builtins.fetchGit {
-    url = https://github.com/espg/jupyterWith;
-    #rev = "40da086b59dc6683daaceb2dceadad55d43c4396";
-    rev = "6cea42308c0d2e8d0ab1b502ab8cf44e70266e07";
-  }) {};
+#{
+#  current ? import (builtins.fetchTarball {
+#             url = "https://github.com/NixOS/nixpkgs/archive/20.09.tar.gz";
+#             sha256 = "1wg61h4gndm3vcprdcg7rc4s1v3jkm5xd7lw8r2f67w502y94gcy";
+#             }) {}
+#}:
 
-  iPython = jupyter.kernels.iPythonWith {
-    name = "python";
-    packages = p: with p; [ 
-      numpy
-      pip
-      wheel
-      #geopandas
-      matplotlib
-      pandas
-      pandocfilters
-      tornado
-      pyrsistent
-      boto3
-      (dask.override { withExtraComplete = true; })
-      scikitlearn
-      rasterio ];
-  };
+#with current;
 
-  jupyterEnvironment =
-    jupyter.jupyterlabWith {
-      extraPackages = p: [
-        p.gcc p.pybind11 p.wget p.libjpeg p.openjpeg p.nodejs
-        p.pandoc ];
-      kernels = [ iPython ];
-      extraJupyterPath = pkgs:
-        "./_build/lib/python3.8/site-packages";
-      ## The generated directory goes here
-      directory = ./jupyterlab;
-    };
+# unstable needed for distributed dask support
+with import <unstable> {};
 
-in
-  jupyterEnvironment.env 
+stdenv.mkDerivation rec {
+  name = "env" ;
+  env = buildEnv { name = name; paths = buildInputs; };
+  buildInputs = [ git hdf4 gcc pybind11 wget libjpeg openjpeg conda
+    (python38.buildEnv.override {
+      ignoreCollisions = true;
+      extraLibs = with python38Packages; [
+        numpy
+        scipy
+        flake8
+        matplotlib
+        conda
+        boto3
+        intake
+        (dask.override { withExtraComplete = true; })
+	    pip
+        notebook
+        cython
+        pandas
+        wheel
+        seaborn
+        gdal
+        h5py
+        datashader
+        netcdf4
+	    shapely
+	    pyproj
+        lib
+        env
+	    numba
+        flask
+        joblib
+        geos
+        scikitlearn
+        xarray
+        six
+	    time
+	    pillow
+	    gzip
+	    setuptools
+	    cycler
+        rasterio
+	    ipython
+	    nbformat
+	    ipywidgets
+      ];
+     })
+    ];
 
+  shellHook = ''
+            alias pip="PIP_PREFIX='$(pwd)/_build/pip_packages' \pip"
+            export PYTHONPATH="$(pwd)/_build/pip_packages/lib/python3.8/site-packages:$PYTHONPATH"
+            unset SOURCE_DATE_EPOCH
+            pip install ipyleaflet
+            jupyter nbextension enable --py ipyleaflet
+  '';}

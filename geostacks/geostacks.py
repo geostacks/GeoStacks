@@ -8,6 +8,7 @@ import requests
 import boto3
 import botocore
 import pickle
+import pkgutil
 from datetime import datetime
 
 
@@ -82,7 +83,7 @@ class SpatialIndexLS8(SpatialIndex):
         #                                      'lon_UR', 'lat_LL', 'lon_LL',
         #                                      'lat_LR', 'lon_LR'], axis=1)
 
-    def make_pts(lat, lon):
+    def make_pts(self, lat, lon):
         "input is degrees"
         points = np.vstack((lat, lon)).T
         points = np.radians(points)
@@ -90,12 +91,12 @@ class SpatialIndexLS8(SpatialIndex):
             points = points.reshape(1,-1)
         return points
 
-    def point_in_box(idx, points):
+    def point_in_box(self, idx, points):
         """Returns 'True' if point is in box, else 'False'
            `points` is expected to be from `make_pts` (i.e.,  radian vector)
 
            ...think that points can be singular or multiple?"""
-        footprint = get_footprints(idx)
+        footprint = self.get_footprint(idx)
         center_lon = np.radians(self.corner_pts_df.lon_CTR.iloc[idx])
         center_lat = np.radians(self.corner_pts_df.lat_CTR.iloc[idx])
         # these are the edge segmentsin lon/lat space
@@ -118,7 +119,7 @@ class SpatialIndexLS8(SpatialIndex):
         signs_ = np.sign(values_) * center_signs[None,:]
         return np.squeeze(np.all(signs_ == 1, 1))
 
-    def get_footprint(idx):
+    def get_footprint(self, idx):
         """ Returns (4,2) (rows, columns) array of coordinate corners (lat, lon)
         idx is an entry from q() in LS8
         corners start UL and increase clockwise"""
@@ -146,18 +147,20 @@ class SpatialIndexLS8(SpatialIndex):
 
         # (1) Ball Tree
         # Load tree to reduce runtime...
-        LSBall = pickle.load( open("../sensors/ls8Ball.pkl", "rb"))
+        data = pkgutil.get_data(__name__, "sensors/ls8Ball.pkl")
+        #LSBall = pickle.load( open("sensors/ls8Ball.pkl", "rb"))
+        LSBall = pickle.loads(data)
 
-        point_geometry = self.make_pts(lat,lon)
+        #point_geometry = self.make_pts(lat,lon)
 
-        q = np.array(point_geometry)
+        q = self.make_pts(lat, lon)
 
         pre_selection = LSBall.query_radius(q, r=0.05,
                                             return_distance=False)
         pre_selection_idx = pre_selection[0]
         # @whyjz : just curious, why the sort?
         pre_selection_idx.sort()
-        polygon_pre_selection = self.footprint.loc[pre_selection_idx]
+        polygon_pre_selection = self.corner_pts_df.iloc[pre_selection_idx]
 
         # (2) Point-in-box
         # Does not work for complex polygons, but fine for footprints

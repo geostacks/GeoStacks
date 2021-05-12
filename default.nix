@@ -18,7 +18,7 @@ let
       tornado
       pyrsistent
       boto3
-      #(dask.override { withExtraComplete = true; })
+      (dask.override { withExtraComplete = true; })
       scikitlearn
       rasterio ];
   };

@@ -1,14 +1,11 @@
-#{
-#  current ? import (builtins.fetchTarball {
-#             url = "https://github.com/NixOS/nixpkgs/archive/20.09.tar.gz";
-#             sha256 = "1wg61h4gndm3vcprdcg7rc4s1v3jkm5xd7lw8r2f67w502y94gcy";
-#             }) {}
-#}:
+{
+  current ? import (builtins.fetchTarball {
+              url = "https://github.com/NixOS/nixpkgs/archive/ae1c8ede09b53007ba9b3c32f926c9c03547ae8b.tar.gz";
+              sha256 = "1lpphn9dcf8vh8ia38f472i7cqggp3knpfa2jwlc6z5ldbvrw7ki";
+             }) {}
+}:
 
-#with current;
-
-# unstable needed for distributed dask support
-with import <unstable> {};
+with current;
 
 stdenv.mkDerivation rec {
   name = "env" ;

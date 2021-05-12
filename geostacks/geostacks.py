@@ -7,7 +7,7 @@ from sklearn.neighbors import BallTree
 import requests
 import boto3
 import botocore
-import pickel
+import pickle
 from datetime import datetime
 
 

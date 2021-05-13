@@ -22,7 +22,7 @@ dependencies:
   - matplotlib
   - netcdf4
   - numba
-  - numpy
+  - numpy < 1.20 
   - pandas
   - pillow
   - pip

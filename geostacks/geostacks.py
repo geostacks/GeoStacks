@@ -6,7 +6,7 @@ import numpy as np
 import requests
 import boto3
 import botocore
-import pickle
+import joblib
 import pkgutil
 from datetime import datetime
 
@@ -146,8 +146,9 @@ class SpatialIndexLS8(SpatialIndex):
 
         # (1) Ball Tree
         # Load tree to reduce runtime...
-        data = pkgutil.get_data(__name__, "sensors/ls8Ball.pkl")
-        LSBall = pickle.loads(data)
+        #data = pkgutil.get_data(__name__, "sensors/ls8Ball.pkl")
+        f = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sensors/ls8.tree')
+        LSBall = joblib.load(f)
 
         q = self.make_pts(lat, lon)
 

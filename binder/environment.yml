@@ -27,7 +27,7 @@ dependencies:
   - pillow
   - pip
   - pyproj
-  - python
+  - python = 3.7
   - rasterio
   - scikit-learn
   - scipy

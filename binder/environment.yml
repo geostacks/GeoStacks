@@ -29,9 +29,9 @@ dependencies:
   - pyproj
   - rasterio
   - scikit-learn
-  - scipy < 1.6
+  - scipy
   - seaborn
   - shapely
   - six
   - xarray
-    #- yaml
+  - yaml

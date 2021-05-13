@@ -11,77 +11,42 @@ import pkgutil
 from datetime import datetime
 
 
-class SpatialIndex:
+class SpatialIndexL3:
 
-    def __init__(self, fname=None):
+    def __init__(self, name='ls8', idx=None):
 
-        self.fname = fname
-        self.corner_pts_df = None
-        self.footprint = None
+        self.name = name
+        self.read()
+        if idx:
+            self.data = self.data.loc[idx]
+        #self.tree = None
 
-    @staticmethod
-    def _check_crossing(lon_list):
-        """
-        Checks if the antimeridian is crossed.
-        lon_list has four elements: [lon_UL, lon_UR, lon_LR, lon_LL]
-        which defines an image boundary.
-        """
-        return any(abs(pair[0] - pair[1]) >
-                   180.0 for pair in itertools.combinations(lon_list, 2))
-
-
-class SpatialIndexLS8(SpatialIndex):
-
-    # We should test for antimeridian,
-    # but disabling for now to test query function
-
-    # def gen_geometries(self):
-    #    """
-    #    Create a polygon object for each LS8 grid point.
-    #    If the polygon runs across the antimeridian, The polygon will be
-    #    separated into two adjacent polygons along the antimeridian, and these
-    #    two polygons will be grouped into a single MultiPolygon object.
-    #    """
-    #    geometry_collection = []
-    #    for index, row in self.corner_pts_df.iterrows():
-    #        lon_list = [row.lon_UL, row.lon_UR, row.lon_LR, row.lon_LL]
-    #        if self._check_crossing(lon_list):
-    #            set1 = [x % 360.0 for x in lon_list]
-    #            set2 = [x % -360.0 for x in lon_list]
-    #            poly1 = Polygon([(set1[0], row.lat_UL),
-    #                             (set1[1], row.lat_UR),
-    #                             (set1[2], row.lat_LR),
-    #                             (set1[3], row.lat_LL)])
-    #            poly2 = Polygon([(set2[0], row.lat_UL),
-    #                             (set2[1], row.lat_UR),
-    #                             (set2[2], row.lat_LR),
-    #                             (set2[3], row.lat_LL)])
-    #            feature_geometry = MultiPolygon([poly1, poly2])
-    #        else:
-    #            feature_geometry = Polygon([(row.lon_UL, row.lat_UL),
-    #                                        (row.lon_UR, row.lat_UR),
-    #                                        (row.lon_LR, row.lat_LR),
-    #                                        (row.lon_LL, row.lat_LL)])
-    #        geometry_collection.append(feature_geometry)
-
-    #    return geometry_collection
 
     def read(self):
 
-        if self.fname.endswith('.xls'):
-            self.corner_pts_df = pd.read_excel(self.fname)
-        elif self.fname.endswith('.csv'):
-            self.corner_pts_df = pd.read_csv(self.fname)
+        # Hacky for now...
+        if self.name == 'LS8' or 'ls8':
+            fdata = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+                                 'sensors/' + self.name + '.csv')
+            ftree = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+                                 'sensors/' + self.name + '.tree')
+            fcat = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+                                 'sensors/' + self.name + '.yaml')
+            self.data = pd.read_csv(fdata)
+            # Not needed? csv is already stored as int I think...
+            # self.data = self.data.astype({'path': int,
+            #                                            'row': int})
+            self.tree = joblib.load(ftree)
+            self.intake = fcat
         else:
-            print('Error: unsupported file format')
-        self.corner_pts_df = self.corner_pts_df.astype({'path': int,
-                                                        'row': int})
+            print('Error: Sensor not implemented')
         # geometry_collection = self.gen_geometries()
-        # self.footprint = gpd.GeoDataFrame(self.corner_pts_df,
+        # self.footprint = gpd.GeoDataFrame(self.data,
         #                                   geometry=geometry_collection)
         # self.footprint = self.footprint.drop(['lat_UL', 'lon_UL', 'lat_UR',
         #                                       'lon_UR', 'lat_LL', 'lon_LL',
         #                                       'lat_LR', 'lon_LR'], axis=1)
+
 
     def make_pts(self, lat, lon):
         "input is degrees"
@@ -97,8 +62,8 @@ class SpatialIndexLS8(SpatialIndex):
 
            ...think that points can be singular or multiple?"""
         footprint = self.get_footprint(idx)
-        center_lon = np.radians(self.corner_pts_df.lon_CTR.iloc[idx])
-        center_lat = np.radians(self.corner_pts_df.lat_CTR.iloc[idx])
+        center_lon = np.radians(self.data.lon_CTR.loc[idx])
+        center_lat = np.radians(self.data.lat_CTR.loc[idx])
         # these are the edge segmentsin lon/lat space
         supports = [footprint[0]-footprint[1],
                     footprint[1]-footprint[2],
@@ -123,11 +88,63 @@ class SpatialIndexLS8(SpatialIndex):
         idx is an entry from q() in LS8
         corners start UL and increase clockwise"""
         # Reorder columns for sensible reshape
-        sub = self.corner_pts_df[['lat_UL', 'lon_UL',
-                                  'lat_UR', 'lon_UR',
-                                  'lat_LR', 'lon_LR',
-                                  'lat_LL', 'lon_LL']].iloc[idx]
+        sub = self.data[['lat_UL', 'lon_UL',
+                         'lat_UR', 'lon_UR',
+                         'lat_LR', 'lon_LR',
+                         'lat_LL', 'lon_LL']].loc[idx]
         return np.radians(sub.values.reshape((4, 2)))
+
+    @staticmethod
+    def _check_crossing(lon_list):
+        """
+        Checks if the antimeridian is crossed.
+        lon_list has four elements: [lon_UL, lon_UR, lon_LR, lon_LL]
+        which defines an image boundary.
+        """
+        return any(abs(pair[0] - pair[1]) >
+                   180.0 for pair in itertools.combinations(lon_list, 2))
+
+class Search(SpatialIndexL3):
+
+    def mkgeojson(self):
+        return
+
+
+class SpatialIndexLS8(SpatialIndexL3):
+
+    # We should test for antimeridian,
+    # but disabling for now to test query function
+
+    # def gen_geometries(self):
+    #    """
+    #    Create a polygon object for each LS8 grid point.
+    #    If the polygon runs across the antimeridian, The polygon will be
+    #    separated into two adjacent polygons along the antimeridian, and these
+    #    two polygons will be grouped into a single MultiPolygon object.
+    #    """
+    #    geometry_collection = []
+    #    for index, row in self.data.iterrows():
+    #        lon_list = [row.lon_UL, row.lon_UR, row.lon_LR, row.lon_LL]
+    #        if self._check_crossing(lon_list):
+    #            set1 = [x % 360.0 for x in lon_list]
+    #            set2 = [x % -360.0 for x in lon_list]
+    #            poly1 = Polygon([(set1[0], row.lat_UL),
+    #                             (set1[1], row.lat_UR),
+    #                             (set1[2], row.lat_LR),
+    #                             (set1[3], row.lat_LL)])
+    #            poly2 = Polygon([(set2[0], row.lat_UL),
+    #                             (set2[1], row.lat_UR),
+    #                             (set2[2], row.lat_LR),
+    #                             (set2[3], row.lat_LL)])
+    #            feature_geometry = MultiPolygon([poly1, poly2])
+    #        else:
+    #            feature_geometry = Polygon([(row.lon_UL, row.lat_UL),
+    #                                        (row.lon_UR, row.lat_UR),
+    #                                        (row.lon_LR, row.lat_LR),
+    #                                        (row.lon_LL, row.lat_LL)])
+    #        geometry_collection.append(feature_geometry)
+
+    #    return geometry_collection
 
     def query_pathrow(self, lat, lon):
         '''
@@ -144,29 +161,23 @@ class SpatialIndexLS8(SpatialIndex):
             selection_idx: index numbers for the right Path/Row.
         '''
 
-        # (1) Ball Tree
-        # Load tree to reduce runtime...
-        #data = pkgutil.get_data(__name__, "sensors/ls8Ball.pkl")
-        f = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sensors/ls8.tree')
-        LSBall = joblib.load(f)
-
         q = self.make_pts(lat, lon)
 
-        pre_selection = LSBall.query_radius(q, r=0.05,
-                                            return_distance=False)
+        pre_selection = self.tree.query_radius(q, r=0.05,
+                                               return_distance=False)
         pre_selection_idx = pre_selection[0]
-        # @whyjz : just curious, why the sort?
         pre_selection_idx.sort()
-        polygon_pre_selection = self.corner_pts_df.iloc[pre_selection_idx]
+        polygon_pre_selection = self.data.loc[pre_selection_idx]
 
         # (2) Point-in-box
         # Does not work for complex polygons, but fine for footprints
         selection_idx = []
-        for idx, row in polygon_pre_selection.iterrows():
-            if self.point_in_box(idx, q):
-                selection_idx.append(idx)
+        for i, row in polygon_pre_selection.iterrows():
+            if self.point_in_box(i, q):
+                selection_idx.append(i)
 
-        return selection_idx
+        return Search(name=self.name, idx=selection_idx)
+        #return selection_idx
 
     def search_s3(self, pr_idx):
         s3_pathrow = '{:03d}/{:03d}'.format(self.footprint.loc[pr_idx].path,
@@ -206,7 +217,7 @@ class SpatialIndexLS8(SpatialIndex):
         return s3_prefix, scene_list
 
 
-class SpatialIndexITSLIVE(SpatialIndex):
+class SpatialIndexITSLIVE(SpatialIndexL3):
     # modified from https://github.com/nasa-jpl/itslive
     @staticmethod
     def get_granule_urls(params):

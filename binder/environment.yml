@@ -13,6 +13,7 @@ dependencies:
   - geos
   - h5py
   - intake
+  - intake-xarray
   - ipyleaflet
   - ipympl
   - ipywidgets

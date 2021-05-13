@@ -3,40 +3,36 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - numpy
-  - scipy
-  - flake8
-  - matplotlib
-  - conda
   - boto3
-  - intake
-  - dask
-  - pip
-  - notebook
-  - cython
-  - pandas
-  - wheel
-  - seaborn
-  - gdal
-  - h5py
-  - datashader
-  - netcdf4
-  - shapely
-  - pyproj
-  - numba
-  - joblib
-  - geos
-  - scikit-learn
-  - xarray
-  - six
-  - pillow
   - cycler
-  - rasterio
-  - ipython
-  - nbformat
-  - jupyterlab
+  - cython
+  - dask
+  - datashader
+  - flake8
+  - gdal
+  - geos
+  - h5py
+  - intake
+  - ipyleaflet
   - ipympl
   - ipywidgets
+  - joblib
   - jupyter
-  - ipyleaflet
+  - jupyterlab
+  - matplotlib
+  - netcdf4
+  - numba
+  - numpy
+  - pandas
+  - pillow
   - pip
+  - pyproj
+  - python = 3.7
+  - rasterio
+  - scikit-learn
+  - scipy
+  - seaborn
+  - shapely
+  - six
+  - xarray
+  - yaml

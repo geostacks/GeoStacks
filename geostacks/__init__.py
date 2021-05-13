@@ -1,3 +1,3 @@
 
-from geostacks.geostacks import SpatialIndex, SpatialIndexLS8, SpatialIndexITSLIVE
+from geostacks.geostacks import SpatialIndexL3, SpatialIndexLS8, SpatialIndexITSLIVE
 

@@ -28,6 +28,7 @@ dependencies:
   - pillow
   - pip
   - pyproj
+  - pytest
   - rasterio
   - scikit-learn
   - scipy

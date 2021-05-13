@@ -29,9 +29,7 @@ dependencies:
   - scikit-learn
   - xarray
   - six
-  - time
   - pillow
-  - gzip
   - cycler
   - rasterio
   - ipython

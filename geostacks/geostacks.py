@@ -177,7 +177,7 @@ class SpatialIndexLS8(SpatialIndexL3):
                 selection_idx.append(i)
 
         return Search(name=self.name, idx=selection_idx)
-        #return selection_idx
+        # return selection_idx
 
     def search_s3(self, pr_idx):
         s3_pathrow = '{:03d}/{:03d}'.format(self.footprint.loc[pr_idx].path,

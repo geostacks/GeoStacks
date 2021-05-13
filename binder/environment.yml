@@ -1,0 +1,44 @@
+name: geostacks
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - numpy
+  - scipy
+  - flake8
+  - matplotlib
+  - conda
+  - boto3
+  - intake
+  - dask
+  - pip
+  - notebook
+  - cython
+  - pandas
+  - wheel
+  - seaborn
+  - gdal
+  - h5py
+  - datashader
+  - netcdf4
+  - shapely
+  - pyproj
+  - numba
+  - joblib
+  - geos
+  - scikit-learn
+  - xarray
+  - six
+  - time
+  - pillow
+  - gzip
+  - cycler
+  - rasterio
+  - ipython
+  - nbformat
+  - jupyterlab
+  - ipympl
+  - ipywidgets
+  - jupyter
+  - ipyleaflet
+  - pip

@@ -22,14 +22,14 @@ dependencies:
   - matplotlib
   - netcdf4
   - numba
-  - numpy < 1.20 
+  - numpy
   - pandas
   - pillow
   - pip
   - pyproj
   - rasterio
   - scikit-learn
-  - scipy
+  - scipy < 1.6
   - seaborn
   - shapely
   - six

@@ -8,7 +8,7 @@ with open("README.md", "r") as fh:
 
 with open("binder/environment.yml", "r") as fh:
     env = yaml.safe_load(fh)
-requirements = env['dependencies']
+requirements = [a.split('=', 1)[0].strip() for a in env['dependencies'] ]
 
 setuptools.setup(
     name             = "geostacks",

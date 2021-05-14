@@ -10,7 +10,7 @@ with current;
 stdenv.mkDerivation rec {
   name = "env" ;
   env = buildEnv { name = name; paths = buildInputs; };
-  buildInputs = [ git hdf4 gcc pybind11 wget libjpeg openjpeg conda
+  buildInputs = [ git hdf4 gcc pybind11 wget libjpeg openjpeg 
     (python38.buildEnv.override {
       ignoreCollisions = true;
       extraLibs = with python38Packages; [
@@ -18,7 +18,6 @@ stdenv.mkDerivation rec {
         scipy
         flake8
         matplotlib
-        conda
         boto3
         intake
         (dask.override { withExtraComplete = true; })

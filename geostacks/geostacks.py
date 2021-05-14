@@ -8,6 +8,7 @@ import boto3
 import botocore
 import joblib
 import pkgutil
+import intake as it
 from datetime import datetime
 
 
@@ -37,7 +38,7 @@ class SpatialIndexL3:
             # self.data = self.data.astype({'path': int,
             #                                            'row': int})
             self.tree = joblib.load(ftree)
-            self.intake = fcat
+            self.intake = it.open_catalog(fcat)
         else:
             print('Error: Sensor not implemented')
         # geometry_collection = self.gen_geometries()

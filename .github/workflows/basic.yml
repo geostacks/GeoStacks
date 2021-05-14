@@ -42,4 +42,5 @@ jobs:
       - name: Test GeoStacks
         run: |
           source activate geostacks
+          pip install -e .
           pytest geostacks/tests/test1.py

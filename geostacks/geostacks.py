@@ -9,7 +9,7 @@ import botocore
 import joblib
 import pkgutil
 import intake as it
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # UI components
 import ipyleaflet as ilfl
@@ -223,19 +223,22 @@ class SpatialIndexLS8(SpatialIndexL3):
                 # print('No available scenes!')
                 pass
             else:
+                shift = timedelta(minutes=1)
                 for scene in response.get('CommonPrefixes'):
                     scene_prefix = scene.get('Prefix')
                     # print(scene.get('Prefix'))
                     pr_str = scene_prefix.split('_')[2]
                     path = int(pr_str[:3])
                     row  = int(pr_str[-3:])
+                    tierstate = scene_prefix.split('_')[6][:-1]
                     acq_timestamp = scene_prefix.split('_')[3]
                     acq_timestamp = datetime.strptime(acq_timestamp, '%Y%m%d')
-                    acq_timestamp = acq_timestamp.date()
+                    if tierstate == 'RT':
+                        acq_timestamp += shift
+                    #acq_timestamp = acq_timestamp.date()
                     prc_timestamp = scene_prefix.split('_')[4]
                     prc_timestamp = datetime.strptime(prc_timestamp, '%Y%m%d')
-                    prc_timestamp = prc_timestamp.date()
-                    tierstate = scene_prefix.split('_')[6][:-1]
+                    #prc_timestamp = prc_timestamp.date()
                     # print(timestamp, tierstate)
                     scene_list.loc[scene_idx] = [path, 
                                                  row,
@@ -245,6 +248,9 @@ class SpatialIndexLS8(SpatialIndexL3):
                                                  tierstate]
                     scene_idx += 1
                     
+        scene_list.sort_values(by='acq_time', inplace=True)
+        scene_list = scene_list.set_index('acq_time')
+        scene_list = scene_list[~scene_list.index.duplicated(keep='last')]
         return scene_list
         # return s3_prefix, scene_list
 

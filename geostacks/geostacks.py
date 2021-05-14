@@ -180,8 +180,8 @@ class SpatialIndexLS8(SpatialIndexL3):
         # return selection_idx
 
     def search_s3(self, pr_idx):
-        s3_pathrow = '{:03d}/{:03d}'.format(self.footprint.loc[pr_idx].path,
-                                            self.footprint.loc[pr_idx].row)
+        s3_pathrow = '{:03d}/{:03d}'.format(self.data.loc[pr_idx, 'path'],
+                                            self.data.loc[pr_idx, 'row'])
         s3_prefix = 'c1/L8/' + s3_pathrow + '/LC08_L1TP_'
         # print(s3_prefix)
 

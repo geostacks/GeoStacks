@@ -201,7 +201,7 @@ class SpatialIndexLS8(SpatialIndexL3):
         response = s3.list_objects_v2(Bucket="landsat-pds", MaxKeys=1000,
                                       Prefix=s3_prefix, Delimiter='/')
 
-        scene_list = pd.DataFrame(columns=('prefix', 'time', 'tier'))
+        scene_list = pd.DataFrame(columns=('prefix', 'acq_time', 'prc_time', 'tier'))
         scene_idx = 0
 
         if response.get('CommonPrefixes') is None:
@@ -211,13 +211,16 @@ class SpatialIndexLS8(SpatialIndexL3):
             for scene in response.get('CommonPrefixes'):
                 scene_prefix = scene.get('Prefix')
                 # print(scene.get('Prefix'))
-                timestamp = scene_prefix.split('_')[3]
-                timestamp = datetime.strptime(timestamp, '%Y%m%d')
-                timestamp = timestamp.date()
+                acq_timestamp = scene_prefix.split('_')[3]
+                acq_timestamp = datetime.strptime(acq_timestamp, '%Y%m%d')
+                acq_timestamp = acq_timestamp.date()
+                prc_timestamp = scene_prefix.split('_')[4]
+                prc_timestamp = datetime.strptime(prc_timestamp, '%Y%m%d')
+                prc_timestamp = prc_timestamp.date()
                 tierstate = scene_prefix.split('_')[6][:-1]
                 # print(timestamp, tierstate)
                 scene_list.loc[scene_idx] = [scene_prefix,
-                                             timestamp, tierstate]
+                                             acq_timestamp, prc_timestamp, tierstate]
                 scene_idx += 1
 
         return s3_prefix, scene_list

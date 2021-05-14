@@ -39,7 +39,7 @@ jobs:
           python --version
           conda env create -f binder/environment.yml
           
-      - name: Import GeoStacks
+      - name: Test GeoStacks
         run: |
           source activate geostacks
-          python -c "from geostacks import SpatialIndexLS8"
+          pytest geostacks/tests/test1.py

@@ -11,6 +11,11 @@ import pkgutil
 import intake as it
 from datetime import datetime
 
+# UI components
+import ipyleaflet as ilfl
+from ipyleaflet import Polygon
+import ipywidgets as iwg
+
 
 class SpatialIndexL3:
 
@@ -292,3 +297,77 @@ class SpatialIndexITSLIVE(SpatialIndexL3):
         for key in pr_dict:
             pr_dict[key].sort(key=lambda x: x.get('entrystr'))
         return pr_dict
+
+    
+class GeoStacksUI():
+    
+    def __init__(self, zoom=4, lon=-50.,lat=69., spatial_index=None):
+        
+        self.zoom = zoom
+        self.lat = lat
+        self.lon = lon
+        self.mainmap = None
+        self.marker = None
+        self.idxs = None
+        self.ui_title = None
+        self.prlist = []
+        self.menuleft = None     # path / row menu
+        self.pr_selection = None
+        self.map_polygon = None
+        self.spatial_index = spatial_index
+        self.record = None       # temporary attribute to store select spatial record
+        self.output = None       # print message output (unused for now)
+        self.results = None      # store results (unused for now)
+        
+    def init_panelleft(self):
+        self.ui_title = iwg.HTML("<h2>Drag the marker to your region of interest</h2>")
+        self.idxs = self.spatial_index.query_pathrow(self.lat,self.lon)
+        self.prlist = [('{:03d}/{:03d}'.format(self.spatial_index.data.loc[i, 'path'], 
+                                              self.spatial_index.data.loc[i, 'row' ]), i) for i in self.idxs.data.index]
+        self.menuleft = iwg.Select(options=self.prlist, description='LS8 Path/Row:', rows=15)
+        
+    def init_map(self):
+        self.mainmap = ilfl.Map(basemap=ilfl.basemaps.Gaode.Satellite,
+                                center=[self.lat, self.lon], zoom=self.zoom)
+        self.marker = ilfl.Marker(location=[self.lat, self.lon], draggable=True)
+        self.mainmap.add_layer(self.marker)
+        self.pr_selection = self.idxs.data.index[0]
+        self.record = self.spatial_index.data.loc[self.pr_selection]
+        self.map_polygon = Polygon(
+            locations=[(self.record.lat_UL, self.record.lon_UL), (self.record.lat_UR, self.record.lon_UR), (self.record.lat_LR, self.record.lon_LR), (self.record.lat_LL, self.record.lon_LL)],
+            color="blue")
+        self.mainmap.add_layer(self.map_polygon)
+        
+    def gen_ui(self, spatial_index=None):
+        if self.spatial_index is None:
+            self.spatial_index = spatial_index
+        
+        self.init_panelleft()
+        self.init_map()
+        
+        self.marker.observe(self._on_location_changed, 'location')
+        self.menuleft.observe(self._on_menuleft_selection_changed, names='value')
+        leftside = iwg.VBox([self.ui_title, self.menuleft])
+        leftside.layout.align_items = 'center'
+        return iwg.AppLayout(left_sidebar=leftside, center=self.mainmap)
+
+    # ==== leftmenu update when map marker loc changes
+    
+    def _on_location_changed(self, event):
+        # self.query_pt = [self.marker.location[-1], self.marker.location[0]]
+        self.lat = self.marker.location[0]
+        self.lon = self.marker.location[-1]
+        self.idxs = self.spatial_index.query_pathrow(self.lat, self.lon)
+        self.prlist = [('{:03d}/{:03d}'.format(self.spatial_index.data.loc[i, 'path'], 
+                                               self.spatial_index.data.loc[i, 'row']), i) for i in self.idxs.data.index]
+        self.menuleft.options = self.prlist
+        
+    # ==== map polygon update when leftmenu selection changes
+
+    def _on_menuleft_selection_changed(self, change):
+        self.pr_selection = change['new']
+        self.record = self.spatial_index.data.loc[self.pr_selection]
+        self.map_polygon.locations = [(self.record.lat_UL, self.record.lon_UL), 
+                                      (self.record.lat_UR, self.record.lon_UR), 
+                                      (self.record.lat_LR, self.record.lon_LR), 
+                                      (self.record.lat_LL, self.record.lon_LL)]

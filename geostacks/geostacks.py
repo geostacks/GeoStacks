@@ -186,44 +186,67 @@ class SpatialIndexLS8(SpatialIndexL3):
         # return selection_idx
 
     def search_s3(self, pr_idx):
-        s3_pathrow = '{:03d}/{:03d}'.format(self.data.loc[pr_idx, 'path'],
-                                            self.data.loc[pr_idx, 'row'])
-        s3_prefix = 'c1/L8/' + s3_pathrow + '/LC08_L1TP_'
-        # print(s3_prefix)
-
-        # according to https://github.com/boto/boto3/issues/1200
-        s3 = boto3.client('s3', region_name='us-west-2',
-                          config=botocore.config.Config(
-                            signature_version=botocore.UNSIGNED))
-
-        # https://towardsdatascience.com/
-        #        working-with-amazon-s3-buckets-with-boto3-785252ea22e0
-        response = s3.list_objects_v2(Bucket="landsat-pds", MaxKeys=1000,
-                                      Prefix=s3_prefix, Delimiter='/')
-
-        scene_list = pd.DataFrame(columns=('prefix', 'acq_time', 'prc_time', 'tier'))
+        
+        scene_list = pd.DataFrame(columns=('path', 'row', 'prefix', 'acq_time', 'prc_time', 'tier'))
         scene_idx = 0
+        
+        def s3_response(path, row):
+            
+            s3_pathrow = '{:03d}/{:03d}'.format(path, row)
+            s3_prefix = 'c1/L8/' + s3_pathrow + '/LC08_L1TP_'
+            # print(s3_prefix)
 
-        if response.get('CommonPrefixes') is None:
-            # print('No available scenes!')
-            pass
+            # according to https://github.com/boto/boto3/issues/1200
+            s3 = boto3.client('s3', region_name='us-west-2',
+                              config=botocore.config.Config(
+                                signature_version=botocore.UNSIGNED))
+
+            # https://towardsdatascience.com/
+            #        working-with-amazon-s3-buckets-with-boto3-785252ea22e0
+            response = s3.list_objects_v2(Bucket="landsat-pds", MaxKeys=1000,
+                                          Prefix=s3_prefix, Delimiter='/')
+            
+            return response
+        
+        if type(pr_idx) is list:
+            response_list = []
+            for each_pr_idx in pr_idx:
+                response_list.append(s3_response(self.data.loc[each_pr_idx, 'path'], self.data.loc[each_pr_idx, 'row']))
         else:
-            for scene in response.get('CommonPrefixes'):
-                scene_prefix = scene.get('Prefix')
-                # print(scene.get('Prefix'))
-                acq_timestamp = scene_prefix.split('_')[3]
-                acq_timestamp = datetime.strptime(acq_timestamp, '%Y%m%d')
-                acq_timestamp = acq_timestamp.date()
-                prc_timestamp = scene_prefix.split('_')[4]
-                prc_timestamp = datetime.strptime(prc_timestamp, '%Y%m%d')
-                prc_timestamp = prc_timestamp.date()
-                tierstate = scene_prefix.split('_')[6][:-1]
-                # print(timestamp, tierstate)
-                scene_list.loc[scene_idx] = [scene_prefix,
-                                             acq_timestamp, prc_timestamp, tierstate]
-                scene_idx += 1
-
-        return s3_prefix, scene_list
+            # print(self.data.loc[pr_idx, 'path'])
+            # print(self.data.loc[pr_idx, 'row'])
+            # response = s3_response(self.data.loc[pr_idx, 'path'], self.data.loc[pr_idx, 'row'])
+            response_list = [s3_response(self.data.loc[pr_idx, 'path'], self.data.loc[pr_idx, 'row'])]
+            
+        for response in response_list:
+            if response.get('CommonPrefixes') is None:
+                # print('No available scenes!')
+                pass
+            else:
+                for scene in response.get('CommonPrefixes'):
+                    scene_prefix = scene.get('Prefix')
+                    # print(scene.get('Prefix'))
+                    pr_str = scene_prefix.split('_')[2]
+                    path = int(pr_str[:3])
+                    row  = int(pr_str[-3:])
+                    acq_timestamp = scene_prefix.split('_')[3]
+                    acq_timestamp = datetime.strptime(acq_timestamp, '%Y%m%d')
+                    acq_timestamp = acq_timestamp.date()
+                    prc_timestamp = scene_prefix.split('_')[4]
+                    prc_timestamp = datetime.strptime(prc_timestamp, '%Y%m%d')
+                    prc_timestamp = prc_timestamp.date()
+                    tierstate = scene_prefix.split('_')[6][:-1]
+                    # print(timestamp, tierstate)
+                    scene_list.loc[scene_idx] = [path, 
+                                                 row,
+                                                 scene_prefix,
+                                                 acq_timestamp, 
+                                                 prc_timestamp, 
+                                                 tierstate]
+                    scene_idx += 1
+                    
+        return scene_list
+        # return s3_prefix, scene_list
 
 
 class SpatialIndexITSLIVE(SpatialIndexL3):

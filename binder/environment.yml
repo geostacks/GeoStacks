@@ -12,6 +12,7 @@ dependencies:
   - gdal
   - geos
   - h5py
+  - hvplot
   - intake
   - intake-xarray
   - ipyleaflet

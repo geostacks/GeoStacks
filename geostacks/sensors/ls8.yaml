@@ -1,4 +1,62 @@
 sources:
+  landsat8:
+    description: Landsat 8 Collection 1 (Google Cloud Public Access)
+    driver: rasterio
+    parameters: # User parameters
+      band_id:
+        description: Band Number
+        type: str
+        default: B2
+        allowed:
+          - B1
+          - B2
+          - B3
+          - B4
+          - B5
+          - B6
+          - B7
+          - B8
+          - B9
+          - B10
+          - B11
+          - BQA
+      base: 
+        description: Base File Path from S3 Search
+        type: str
+        default: "LC08_L1GT_044034_20130330_20170310_01_T2"
+      year:
+        description: Aquisition Year
+        type: int
+        default: 2014
+        min: 2013
+        max: 2021
+      path:
+        description: Path in WRF2 Grid
+        type: str # need padding, which is why not int
+        default: "044"
+        min: "001"
+        max: "233"
+      row:
+        description: Row in WRF2 Grid
+        type: str # Same comment as above
+        default: "034"
+        min: "001"
+        max: "248"
+      doy:
+        description: Day of Year
+        type: str # Same comment as above
+        default: 195
+      source:
+        description: Source dataset
+        type: str
+        default: Google
+    args:
+      urlpath: 'https://storage.googleapis.com/gcp-public-data-landsat/LC08/01/{{ path }}/{{ row }}/{{ base }}/{{ base }}_{{ band_id}}.TIF'
+      storage_options:
+        anon: true
+      chunks:
+        x: 512
+        y: 512 
   landsat8aws:
     description: Landsat AWS Public Access
     driver: rasterio
@@ -15,6 +73,11 @@ sources:
           - B5
           - B6
           - B7
+          - B8
+          - B9
+          - B10
+          - B11
+          - BQA
       year:
         description: Aquisition Year
         type: int

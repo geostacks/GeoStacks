@@ -10,6 +10,7 @@ dependencies:
   - datashader
   - flake8
   - gdal
+  - openpyxl
   - geos
   - h5py
   - hvplot

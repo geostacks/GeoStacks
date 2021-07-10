@@ -43,4 +43,4 @@ jobs:
         run: |
           source activate geostacks
           pip install -e .
-          pytest geostacks/tests/test1.py
+          pytest #geostacks/tests/test1.py
